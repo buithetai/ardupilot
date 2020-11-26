@@ -56,6 +56,7 @@ public:
     void update_heading_hold(int32_t navigation_heading_cd) override;
     void update_level_flight(void) override;
     bool reached_loiter_target(void) override;
+    float turn_ground_speed(void) const override;
 
     // set the default NAVL1_PERIOD
     void set_default_period(float period) {

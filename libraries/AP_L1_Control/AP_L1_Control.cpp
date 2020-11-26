@@ -107,7 +107,21 @@ int32_t AP_L1_Control::target_bearing_cd(void) const
 {
     return wrap_180_cd(_target_bearing_cd);
 }
-
+/*
+ this is the turn current ground speed
+ */
+float AP_L1_Control::turn_ground_speed(void) const
+{
+    Vector2f _groundspeed_vector = _ahrs.groundspeed_vector();
+    //Calculate groundspeed
+    float groundSpeed = _groundspeed_vector.length();
+    if (groundSpeed < 0.1f) {
+        // use a small ground speed vector in the right direction,
+        // allowing us to use the compass heading at zero GPS velocity
+        groundSpeed = 0.1f;
+    }
+    return groundSpeed;
+}
 /*
   this is the turn distance assuming a 90 degree turn
  */

@@ -633,7 +633,11 @@ bool Plane::verify_nav_wp(const AP_Mission::Mission_Command& cmd)
         // allow user to override acceptance radius
         acceptance_distance_m = cmd_acceptance_distance;
     } else if (cmd_passby == 0) {
-        acceptance_distance_m = nav_controller->turn_distance(g.waypoint_radius, auto_state.next_turn_angle);
+        // acceptance_distance_m = nav_controller->turn_distance(g.waypoint_radius, auto_state.next_turn_angle);
+        acceptance_distance_m = nav_controller->turn_ground_speed();
+        float turn_angle = fabsf(auto_state.next_turn_angle);
+        acceptance_distance_m = ((acceptance_distance_m * acceptance_distance_m * g.tracjectory_ratio)/
+                                (9.8196*tanf(roll_limit_cd*3.14159265359/18000)*tanf((180-turn_angle)*3.14159265359/360))) + g.tracjectory_const;
     } else {
 
     }

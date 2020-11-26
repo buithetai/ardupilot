@@ -345,10 +345,13 @@ public:
         k_param_logger = 253, // Logging Group
 
         // 254,255: reserved
-
+        k_param_tracjectory_ratio,
+        k_param_tracjectory_const,
         k_param_vehicle = 257, // vehicle common block of parameters
     };
 
+    AP_Float tracjectory_ratio;
+    AP_Float tracjectory_const;
     AP_Int16 format_version;
 
     // Telemetry control

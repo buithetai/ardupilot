@@ -12,6 +12,20 @@
 #define GOBJECTN(v, pname, name, class) { AP_PARAM_GROUP, name, Parameters::k_param_ ## pname, (const void *)&plane.v, {group_info : class::var_info} }
 
 const AP_Param::Info Plane::var_info[] = {
+    // @Param: TRACJ_RATIO
+    // @DisplayName: Tracjectory ratio
+    // @Description: Adjust the flight trajectory in automatic mode
+    // @Range: 1-5
+    // @User: Advanced
+    GSCALAR(tracjectory_ratio,           "TRACJ_RATIO",    1),
+
+    // @Param: TRACJ_CONST
+    // @DisplayName: Tracjectory const
+    // @Description: Add the const to the turn distance
+    // @Range: 1-5
+    // @User: Advanced
+    GSCALAR(tracjectory_const,           "TRACJ_CONST",    0),
+
     // @Param: FORMAT_VERSION
     // @DisplayName: Eeprom format version number
     // @Description: This value is incremented when changes are made to the eeprom format

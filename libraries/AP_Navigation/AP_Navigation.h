@@ -56,6 +56,9 @@ public:
     // mission when approaching a waypoint
     virtual float turn_distance(float wp_radius, float turn_angle) const = 0;
 
+    //return the current ground speed
+    virtual float turn_ground_speed(void) const = 0;
+
     // return the target loiter radius for the current location that
     // will not cause excessive airframe loading
     virtual float loiter_radius(const float radius) const = 0;
