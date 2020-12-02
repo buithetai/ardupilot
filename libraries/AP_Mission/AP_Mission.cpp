@@ -8,28 +8,35 @@
 
 const AP_Param::GroupInfo AP_Mission::var_info[] = {
 
-    // @Param: TOTAL
-    // @DisplayName: Total mission commands
-    // @Description: The number of mission mission items that has been loaded by the ground station. Do not change this manually.
-    // @Range: 0 32766
-    // @Increment: 1
-    // @User: Advanced
-    // @ReadOnly: True
-    AP_GROUPINFO_FLAGS("TOTAL",  0, AP_Mission, _cmd_total, 0, AP_PARAM_FLAG_INTERNAL_USE_ONLY),
-
     // @Param: RESTART
     // @DisplayName: Mission Restart when entering Auto mode
     // @Description: Controls mission starting point when entering Auto mode (either restart from beginning of mission or resume from last command run)
     // @Values: 0:Resume Mission, 1:Restart Mission
     // @User: Advanced
-    AP_GROUPINFO("RESTART",  1, AP_Mission, _restart, AP_MISSION_RESTART_DEFAULT),
+    AP_GROUPINFO("RESTART",  0, AP_Mission, _restart, AP_MISSION_RESTART_DEFAULT),
 
     // @Param: OPTIONS
     // @DisplayName: Mission options bitmask
     // @Description: Bitmask of what options to use in missions.
     // @Bitmask: 0:Clear Mission on reboot, 1:Use distance to land calc on battery failsafe,2:ContinueAfterLand
     // @User: Advanced
-    AP_GROUPINFO("OPTIONS",  2, AP_Mission, _options, AP_MISSION_OPTIONS_DEFAULT),
+    AP_GROUPINFO("OPTIONS",  1, AP_Mission, _options, AP_MISSION_OPTIONS_DEFAULT),
+
+    // @Param: ROUTE
+    // @DisplayName: Route
+    // @Description: 
+    // @Range: 0 255
+    // @Increment: 1
+    // @User: Advanced
+    AP_GROUPINFO("ROUTE",   2, AP_Mission, _route, AP_MISSION_ROUTE_DEFAULT),
+/*     // @Param: TOTAL
+    // @DisplayName: Total mission commands
+    // @Description: The number of mission mission items that has been loaded by the ground station. Do not change this manually.
+    // @Range: 0 32766
+    // @Increment: 1
+    // @User: Advanced
+    // @ReadOnly: True
+    AP_GROUPINFO_FLAGS("TOTAL",  3, AP_Mission, _cmd_total[0], 0, AP_PARAM_FLAG_INTERNAL_USE_ONLY), */
 
     AP_GROUPEND
 };
@@ -215,7 +222,7 @@ bool AP_Mission::clear()
     }
 
     // remove all commands
-    _cmd_total.set_and_save(0);
+    _cmd_total[_route].set_and_save(0);
 
     // clear index to commands
     _nav_cmd.index = AP_MISSION_CMD_INDEX_NONE;
@@ -231,8 +238,8 @@ bool AP_Mission::clear()
 /// trucate - truncate any mission items beyond index
 void AP_Mission::truncate(uint16_t index)
 {
-    if ((unsigned)_cmd_total > index) {
-        _cmd_total.set_and_save(index);
+    if ((unsigned)_cmd_total[_route] > index) {
+        _cmd_total[_route].set_and_save(index);
     }
 }
 
@@ -241,7 +248,7 @@ void AP_Mission::truncate(uint16_t index)
 void AP_Mission::update()
 {
     // exit immediately if not running or no mission commands
-    if (_flags.state != MISSION_RUNNING || _cmd_total == 0) {
+    if (_flags.state != MISSION_RUNNING || _cmd_total[_route] == 0) {
         return;
     }
 
@@ -344,13 +351,13 @@ bool AP_Mission::start_command(const Mission_Command& cmd)
 bool AP_Mission::add_cmd(Mission_Command& cmd)
 {
     // attempt to write the command to storage
-    bool ret = write_cmd_to_storage(_cmd_total, cmd);
+    bool ret = write_cmd_to_storage(_cmd_total[_route], cmd);
 
     if (ret) {
         // update command's index
-        cmd.index = _cmd_total;
+        cmd.index = _cmd_total[_route];
         // increment total number of commands
-        _cmd_total.set_and_save(_cmd_total + 1);
+        _cmd_total[_route].set_and_save(_cmd_total[_route] + 1);
     }
 
     return ret;
@@ -362,7 +369,7 @@ bool AP_Mission::add_cmd(Mission_Command& cmd)
 bool AP_Mission::replace_cmd(uint16_t index, const Mission_Command& cmd)
 {
     // sanity check index
-    if (index >= (unsigned)_cmd_total) {
+    if (index >= (unsigned)_cmd_total[_route]) {
         return false;
     }
 
@@ -383,7 +390,7 @@ bool AP_Mission::is_nav_cmd(const Mission_Command& cmd)
 bool AP_Mission::get_next_nav_cmd(uint16_t start_index, Mission_Command& cmd)
 {
     // search until the end of the mission command list
-    for (uint16_t cmd_index = start_index; cmd_index < (unsigned)_cmd_total; cmd_index++) {
+    for (uint16_t cmd_index = start_index; cmd_index < (unsigned)_cmd_total[_route]; cmd_index++) {
         // get next command
         if (!get_next_cmd(cmd_index, cmd, false)) {
             // no more commands so return failure
@@ -434,7 +441,7 @@ bool AP_Mission::set_current_cmd(uint16_t index, bool rewind)
     }
 
     // sanity check index and that we have a mission
-    if (index >= (unsigned)_cmd_total || _cmd_total == 1) {
+    if (index >= (unsigned)_cmd_total[_route] || _cmd_total[_route] == 1) {
         return false;
     }
 
@@ -629,14 +636,14 @@ bool AP_Mission::read_cmd_from_storage(uint16_t index, Mission_Command& cmd) con
         return true;
     }
 
-    if (index >= (unsigned)_cmd_total) {
+    if (index >= (unsigned)_cmd_total[_route]) {
         return false;
     }
 
     // Find out proper location in memory by using the start_byte position + the index
     // we can load a command, we don't process it yet
     // read WP position
-    const uint16_t pos_in_storage = 4 + (index * AP_MISSION_EEPROM_COMMAND_SIZE);
+    const uint16_t pos_in_storage = 4 + (index * AP_MISSION_EEPROM_COMMAND_SIZE) + (_route * AP_MISSION_MAX_NUM_COMMAND_IN_ROUTE * AP_MISSION_EEPROM_COMMAND_SIZE);
 
     PackedContent packed_content {};
 
@@ -741,7 +748,7 @@ bool AP_Mission::write_cmd_to_storage(uint16_t index, const Mission_Command& cmd
     }
 
     // calculate where in storage the command should be placed
-    uint16_t pos_in_storage = 4 + (index * AP_MISSION_EEPROM_COMMAND_SIZE);
+    uint16_t pos_in_storage = 4 + (index * AP_MISSION_EEPROM_COMMAND_SIZE)+ (_route * AP_MISSION_MAX_NUM_COMMAND_IN_ROUTE * AP_MISSION_EEPROM_COMMAND_SIZE);
 
     if (cmd.id < 256) {
         _storage.write_byte(pos_in_storage, cmd.id);
@@ -1731,7 +1738,7 @@ bool AP_Mission::get_next_cmd(uint16_t start_index, Mission_Command& cmd, bool i
 
     // search until the end of the mission command list
     uint8_t max_loops = 64;
-    while (cmd_index < (unsigned)_cmd_total) {
+    while (cmd_index < (unsigned)_cmd_total[_route]) {
         // load the next command
         if (!read_cmd_from_storage(cmd_index, temp_cmd)) {
             // this should never happen because of check above but just in case
@@ -1746,7 +1753,7 @@ bool AP_Mission::get_next_cmd(uint16_t start_index, Mission_Command& cmd, bool i
             }
 
             // check for invalid target
-            if ((temp_cmd.content.jump.target >= (unsigned)_cmd_total) || (temp_cmd.content.jump.target == 0)) {
+            if ((temp_cmd.content.jump.target >= (unsigned)_cmd_total[_route]) || (temp_cmd.content.jump.target == 0)) {
                 // To-Do: log an error?
                 return false;
             }
@@ -1802,7 +1809,7 @@ bool AP_Mission::get_next_do_cmd(uint16_t start_index, Mission_Command& cmd)
     Mission_Command temp_cmd;
 
     // check we have not passed the end of the mission list
-    if (start_index >= (unsigned)_cmd_total) {
+    if (start_index >= (unsigned)_cmd_total[_route]) {
         return false;
     }
 
@@ -1837,7 +1844,7 @@ void AP_Mission::init_jump_tracking()
 int16_t AP_Mission::get_jump_times_run(const Mission_Command& cmd)
 {
     // exit immediately if cmd is not a do-jump command or target is invalid
-    if ((cmd.id != MAV_CMD_DO_JUMP) || (cmd.content.jump.target >= (unsigned)_cmd_total) || (cmd.content.jump.target == 0)) {
+    if ((cmd.id != MAV_CMD_DO_JUMP) || (cmd.content.jump.target >= (unsigned)_cmd_total[_route]) || (cmd.content.jump.target == 0)) {
         // To-Do: log an error?
         return AP_MISSION_JUMP_TIMES_MAX;
     }
@@ -1909,7 +1916,8 @@ void AP_Mission::check_eeprom_version()
 uint16_t AP_Mission::num_commands_max(void) const
 {
     // -4 to remove space for eeprom version number
-    return (_storage.size() - 4) / AP_MISSION_EEPROM_COMMAND_SIZE;
+    // return (_storage.size() - 4) / AP_MISSION_EEPROM_COMMAND_SIZE;
+    return AP_MISSION_MAX_NUM_COMMAND_IN_ROUTE;
 }
 
 // find the nearest landing sequence starting point (DO_LAND_START) and
@@ -2087,7 +2095,7 @@ bool AP_Mission::distance_to_landing(uint16_t index, float &tot_distance, Locati
     // run through remainder of mission to approximate a distance to landing
     for (uint8_t i=0; i<255; i++) {
         // search until the end of the mission command list
-        for (uint16_t cmd_index = index; cmd_index < (unsigned)_cmd_total; cmd_index++) {
+        for (uint16_t cmd_index = index; cmd_index < (unsigned)_cmd_total[_route]; cmd_index++) {
             // get next command
             if (!get_next_cmd(cmd_index, temp_cmd, true, false)) {
                 // we got to the end of the mission

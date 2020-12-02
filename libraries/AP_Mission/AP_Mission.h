@@ -23,7 +23,7 @@
 // definitions
 #define AP_MISSION_EEPROM_VERSION           0x65AE  // version number stored in first four bytes of eeprom.  increment this by one when eeprom format is changed
 #define AP_MISSION_EEPROM_COMMAND_SIZE      15      // size in bytes of all mission commands
-
+#define AP_MISSION_MAX_NUM_COMMAND_IN_ROUTE 100     // maximum number command in each route
 #define AP_MISSION_MAX_NUM_DO_JUMP_COMMANDS 15      // allow up to 15 do-jump commands
 
 #define AP_MISSION_JUMP_REPEAT_FOREVER      -1      // when do-jump command's repeat count is -1 this means endless repeat
@@ -40,7 +40,7 @@
 #define AP_MISSION_MASK_MISSION_CLEAR       (1<<0)  // If set then Clear the mission on boot
 #define AP_MISSION_MASK_DIST_TO_LAND_CALC   (1<<1)  // Allow distance to best landing calculation to be run on failsafe
 #define AP_MISSION_MASK_CONTINUE_AFTER_LAND (1<<2)  // Allow mission to continue after land
-
+#define AP_MISSION_ROUTE_DEFAULT            0       //
 #define AP_MISSION_MAX_WP_HISTORY           7       // The maximum number of previous wp commands that will be stored from the active missions history
 #define LAST_WP_PASSED (AP_MISSION_MAX_WP_HISTORY-2)
 
@@ -349,7 +349,7 @@ public:
     ///                 this number includes offset 0, the home location
     uint16_t num_commands() const
     {
-        return _cmd_total;
+        return _cmd_total[_route];
     }
 
     /// num_commands_max - returns maximum number of commands that can be stored
@@ -655,9 +655,10 @@ private:
     static MAV_MISSION_RESULT sanity_check_params(const mavlink_mission_item_int_t& packet);
 
     // parameters
-    AP_Int16                _cmd_total;  // total number of commands in the mission
+    AP_Int16                _cmd_total[255];  // total number of commands in the mission
     AP_Int8                 _restart;   // controls mission starting point when entering Auto mode (either restart from beginning of mission or resume from last command run)
     AP_Int16                _options;    // bitmask options for missions, currently for mission clearing on reboot but can be expanded as required
+    AP_Int8                 _route;     //
 
     // pointer to main program functions
     mission_cmd_fn_t        _cmd_start_fn;  // pointer to function which will be called when a new command is started
