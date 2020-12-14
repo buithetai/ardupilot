@@ -7,6 +7,7 @@
 #include <AP_Logger/AP_Logger.h>
 #include <AP_Vehicle/AP_Vehicle_Type.h>
 
+#include "AP_Compass_LV31.h"
 #include "AP_Compass_SITL.h"
 #include "AP_Compass_AK8963.h"
 #include "AP_Compass_Backend.h"
@@ -1168,6 +1169,10 @@ void Compass::_probe_external_i2c_compasses(void)
  */
 void Compass::_detect_backends(void)
 {
+    if(AP_Compass_LV31::detect(0)){
+        _add_backend(new AP_Compass_LV31(0));
+    }
+
 #ifndef HAL_BUILD_AP_PERIPH
     if (_hil_mode) {
         _add_backend(AP_Compass_HIL::detect());

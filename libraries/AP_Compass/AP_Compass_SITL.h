@@ -9,7 +9,7 @@
 #include <AP_Math/AP_Math.h>
 #include <AP_Declination/AP_Declination.h>
 
-#define MAX_SITL_COMPASSES 3
+#define MAX_SITL_COMPASSES 1
 
 class AP_Compass_SITL : public AP_Compass_Backend {
 public:

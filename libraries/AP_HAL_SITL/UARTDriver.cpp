@@ -531,8 +531,8 @@ void UARTDriver::_uart_start_connection(void)
             return;
         }
         // use much smaller buffer sizes on real UARTs
-        _writebuffer.set_size(1024);
-        _readbuffer.set_size(512);
+        _writebuffer.set_size(512);
+        _readbuffer.set_size(256);
         ::printf("Opened %s\n", _uart_path);
     }
 
